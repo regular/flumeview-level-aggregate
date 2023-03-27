@@ -10,8 +10,9 @@
   "author": "Jan Bölsche <jan@lagomorph.de> (http://regular.codes/)",
   "license": "ISC",
   "dependencies": {
-    "pull-stream": "^3.7.0",
-    "pull-window": "^2.1.4",
+    "pull-stream": "^3.7.0"
+  },
+  "devDependencies": {
     "tape": "^5.6.3"
   }
 }

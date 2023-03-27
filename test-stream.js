@@ -2,7 +2,7 @@ const test = require('tape')
 const pull = require('pull-stream')
 const Stream = require('./stream')
 
-test.skip('aggregates values', t=>{
+test('aggregates values', t=>{
   pull(
     pull.values([1,2,10,11,20,25]),
     Stream(fitsBucket, add, 1000),
@@ -23,7 +23,7 @@ test('dont stall', t=>{
     timedSource([
       [0, 1],
       [0, 2],
-      [20000, 3],
+      [2000, 3],
       [0, 10],
       [0, 11],
       [0, 20],
@@ -31,12 +31,14 @@ test('dont stall', t=>{
     ]),
     Stream(fitsBucket, add, 1000),
     pull.through(console.log),
+    pull.map(x=>Object.assign({}, x)),
     pull.collect( (err, data)=>{
       //console.log(data)
       t.deepEqual(data, [
         { sum: 3, id: 0, l: [ 1, 2 ] },
         { sum: 6, id: 0, l: [ 1, 2, 3 ] },
         { sum: 21, id: 1, l: [ 10, 11 ] },
+        { sum: 20, id: 2, l: [ 20 ] },
         { sum: 45, id: 2, l: [ 20, 25 ] }
       ])
       t.end()
@@ -54,7 +56,7 @@ function bucket(n) {
 function add(b, value) {
   b = b || {id: bucket(value), l: [], sum: 0}
   b.sum += value
-  b.l.push(value)
+  b.l = b.l.concat([value])
   return b
 }
 
