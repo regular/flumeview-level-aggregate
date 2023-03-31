@@ -2,7 +2,6 @@
 //jshint -W018
 //jshint  esversion: 11
 const pull = require('pull-stream')
-//const win = require('pull-window')
 
 module.exports = function(fitsBucket, add, timeout) {
   let end, timer, bucket, reading
@@ -24,7 +23,6 @@ module.exports = function(fitsBucket, add, timeout) {
       if (reading) return
 
       function done(err, acc) {
-        console.log('done', err, acc)
         buff.push([err, acc])
         cb = cbs.shift()
         if (cb) {
@@ -36,14 +34,12 @@ module.exports = function(fitsBucket, add, timeout) {
       }
 
       function setTimer() {
-        console.log('setTimeout')
         if (timer) clearTimeout(timer)
         timer = setTimeout(()=>{
           timer = null
-          console.log('XXXXXXXX timeout', bucket)
-          //if (bucket !== null && bucket !== undefined) {
+          if (bucket !== null && bucket !== undefined) {
             done(null, bucket)
-          //}
+          }
         }, timeout)
       }
 
@@ -53,11 +49,18 @@ module.exports = function(fitsBucket, add, timeout) {
         reading = true
         read(abort, (err, data) =>{
           reading = false
-          console.log('>', err, data)
           if (err) {
             end = err
             if (bucket) done(null, bucket)
             else done(err)
+            return
+          }
+
+          if (data.since !== undefined) {
+            done(null, {
+              keys: [],
+              seq: data.since
+            })
             return
           }
 
