@@ -11,6 +11,8 @@
   "license": "ISC",
   "dependencies": {
     "debug": "^4.3.4",
+    "flumedb-view-driver": "github:regular/flumedb-view-driver",
+    "flumeview-level-transform": "github:regular/flumeview-level-transform",
     "pull-stream": "^3.7.0"
   },
   "devDependencies": {
