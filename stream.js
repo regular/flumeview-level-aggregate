@@ -57,6 +57,10 @@ module.exports = function(fitsBucket, add, timeout) {
           }
 
           if (data.since !== undefined) {
+            if (bucket) {
+              bucket.seq = data.since
+              return
+            }
             done(null, {
               keys: [],
               seq: data.since
