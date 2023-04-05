@@ -15,18 +15,31 @@ const pull = require('pull-stream')
 const FlumeTransform = require('flumeview-level-transform')
 const ViewDriver = require('flumedb-view-driver')
 const Stream = require('./stream')
+const multicb = require('multicb')
 const debug = require('debug')('flumeview-level-aggerage')
 
 module.exports = function(flume, version, transform) {
   const views = []
+  const closes = []
+
   const createView = FlumeTransform(version, transform)
   const ret = function(log, name) {
     const view = createView(log, name)
     const use = ViewDriver(flume, log, source(view))
     views.forEach( ({name, create})=>{
       ret[name] = use(name, create)
+      closes.push(ret[name].close)
     })
-    return view
+    return Object.assign({}, view, {
+      close: function close(cb) {
+        const done = multicb()
+        for (let close of closes) close(done())
+        done( err => {
+          if (err) console.error(err.message)
+          view.close(cb)
+        })
+      } 
+    })
   }
   ret.use = function(name, create) {
     views.push({name, create})

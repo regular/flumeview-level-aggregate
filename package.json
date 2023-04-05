@@ -13,9 +13,14 @@
     "debug": "^4.3.4",
     "flumedb-view-driver": "github:regular/flumedb-view-driver",
     "flumeview-level-transform": "github:regular/flumeview-level-transform",
+    "multicb": "^1.2.2",
     "pull-stream": "^3.7.0"
   },
   "devDependencies": {
-    "tape": "^5.6.3"
+    "flumedb": "^2.1.8",
+    "flumelog-array": "^1.2.0",
+    "obz": "^1.1.0",
+    "tape": "^5.6.3",
+    "tmp": "^0.2.1"
   }
 }
