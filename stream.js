@@ -3,8 +3,8 @@
 //jshint  esversion: 11
 const pull = require('pull-stream')
 
-module.exports = function(fitsBucket, add, timeout) {
-  let end, timer, bucket, reading
+module.exports = function(fitsBucket, add, timeout, initial) {
+  let end, timer, bucket = initial, reading
   const cbs = []
   const buff = []
 
