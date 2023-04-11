@@ -1,3 +1,5 @@
+//jshint esversion:11
+//jshint -W033
 const test = require('tape')
 const pull = require('pull-stream')
 const Stream = require('./stream')
@@ -5,9 +7,8 @@ const Stream = require('./stream')
 test('aggregates values', t=>{
   pull(
     pull.values([1,2,10,11,20,25]),
-    Stream(fitsBucket, add, 1000),
+    Stream(fitsBucket, add, 100),
     pull.collect( (err, data)=>{
-      console.log(data)
       t.deepEqual(data, [
         { sum: 3, id: 0, l: [ 1, 2 ] },
         { sum: 21, id: 1, l: [ 10, 11 ] },
@@ -29,7 +30,7 @@ test('dont stall', t=>{
       [0, 20],
       [2000, 25],
     ]),
-    Stream(fitsBucket, add, 1000),
+    Stream(fitsBucket, add, 100),
     pull.through(console.log),
     pull.map(x=>Object.assign({}, x)),
     pull.collect( (err, data)=>{
