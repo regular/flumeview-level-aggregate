@@ -7,7 +7,7 @@ const Stream = require('./stream')
 test('aggregates values', t=>{
   pull(
     pull.values([1,2,10,11,20,25]),
-    Stream(fitsBucket, add, 100),
+    Stream(fitsBucket, add),
     pull.collect( (err, data)=>{
       t.deepEqual(data, [
         { sum: 3, id: 0, l: [ 1, 2 ] },
@@ -17,6 +17,22 @@ test('aggregates values', t=>{
       t.end()
     })
   )
+})
+
+test('filter', t=>{
+  pull(
+    pull.values([1,2,4, 10,11,12, 20,22,25]),
+    Stream(fitsBucket, add, {filter: n=>n%2==0}),
+    pull.collect( (err, data)=>{
+      t.deepEqual(data, [
+        { sum: 6, id: 0, l: [ 2, 4 ] },
+        { sum: 22, id: 1, l: [ 10, 12 ] },
+        { sum: 42, id: 2, l: [ 20, 22 ] }
+      ])
+      t.end()
+    })
+  )
+
 })
 
 test('dont stall', t=>{
@@ -30,7 +46,7 @@ test('dont stall', t=>{
       [0, 20],
       [2000, 25],
     ]),
-    Stream(fitsBucket, add, 100),
+    Stream(fitsBucket, add, {timeout: 100}),
     pull.through(console.log),
     pull.map(x=>Object.assign({}, x)),
     pull.collect( (err, data)=>{

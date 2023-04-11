@@ -3,7 +3,11 @@
 //jshint  esversion: 11
 const pull = require('pull-stream')
 
-module.exports = function(fitsBucket, add, timeout, initial) {
+module.exports = function(fitsBucket, add, opts) {
+  opts = opts || {}
+  let {timeout, initial, filter} = opts
+  filter = filter || (x=>true)
+
   let end, timer, bucket = initial, reading
   const cbs = []
   const buff = []
@@ -35,6 +39,7 @@ module.exports = function(fitsBucket, add, timeout, initial) {
 
       function setTimer() {
         if (timer) clearTimeout(timer)
+        if (!timeout) return
         timer = setTimeout(()=>{
           timer = null
           if (bucket !== null && bucket !== undefined) {
@@ -59,18 +64,24 @@ module.exports = function(fitsBucket, add, timeout, initial) {
           if (data.since !== undefined) {
             if (bucket) {
               bucket.seq = data.since
-              return
+              return slurp()
             }
-            done(null, {
+            return done(null, {
               keys: [],
               seq: data.since
             })
-            return
+          }
+
+          if (!filter(data)) {
+            if (bucket && data.seq) {
+              bucket.seq = data.seq
+            }
+            return slurp()
           }
 
           if (!bucket || fitsBucket(bucket, data)) {
             bucket = add(bucket, data)
-            slurp()
+            return slurp()
           } else {
             done(null, bucket)
             bucket = add(undefined, data)
