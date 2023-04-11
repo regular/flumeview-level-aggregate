@@ -32,7 +32,19 @@ test('filter', t=>{
       t.end()
     })
   )
+})
 
+test('initial', t=>{
+  pull(
+    pull.values([10]),
+    Stream(fitsBucket, add, {initial: {id: 1, l:[], sum: 100}}),
+    pull.collect( (err, data)=>{
+      t.deepEqual(data, [
+        { sum: 110, id: 1, l: [ 10 ] }
+      ])
+      t.end()
+    })
+  )
 })
 
 test('dont stall', t=>{
