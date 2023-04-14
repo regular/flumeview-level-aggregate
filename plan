@@ -1,0 +1,18 @@
+- [ ] createSink returns a stram composed of
+  - [ ] a through (refactored from stream.js)
+    that outputs a batch and consumes log records
+    Whenever the emit condition is met, ir creates a batch
+    containing the meta record and the current bucket state
+
+  - [ ] a sink that simply writes the batch to leveldb (using pull.drain)
+  - [ ] a bucket is initialised with the last record in leveldb
+
+  Emit condition
+  - [ ] a record is encountered that does not fit
+        the current bucket
+  - [ ] the source did not provide new data in a while
+  - [ ] the source ends
+  - [ ] more than N log records went into the bucket since
+        last flush
+
+
