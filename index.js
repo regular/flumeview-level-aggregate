@@ -8,6 +8,7 @@ const pl = require('pull-level')
 const Obv = require('obz')
 const path = require('path')
 const ltgt = require('ltgt')
+const multicb = require('multicb')
 
 const through = require('./through')
 
@@ -19,10 +20,22 @@ module.exports = function(version, fits, add, opts) {
     const dir = path.dirname(log.filename)
     const since = Obv()
     let closed, outdated
+    let initial
 
     let db = create()
 
-    db.get(META, { keyEncoding: 'utf8' }, function (err, meta) {
+    const done = multicb({pluck: 1, spread: true})
+
+    pull(
+      read({keys: true, values: true, reverse: true}),
+      pull.take(1),
+      pull.collect(done())
+    )
+
+    db.get(META, { keyEncoding: 'utf8' }, done())
+
+    done(function (err, init, meta) {
+      initial = init && init[0]
       if (err) since.set(-1)
       else if (meta.version === version) since.set(meta.since)
       else {
@@ -45,7 +58,7 @@ module.exports = function(version, fits, add, opts) {
     function createSink(cb) {
       return pull(
         //pull.filter(item => item.sync == undefined),
-        through(fits, add, opts),
+        through(fits, add, Object.assign({}, opts, {initial})),
         pull.asyncMap(write),
         pull.onEnd(err=>{
           if (err) console.error(err)

@@ -14,9 +14,10 @@
     "deep-copy": "^1.4.2",
     "level": "^6.0.1",
     "ltgt": "^2.2.1",
+    "multicb": "^1.2.2",
+    "obz": "^1.1.0",
     "pull-level": "^2.0.4",
-    "pull-stream": "^3.7.0",
-    "obz": "^1.1.0"
+    "pull-stream": "^3.7.0"
   },
   "devDependencies": {
     "flumedb": "^2.1.8",
