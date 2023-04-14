@@ -1,72 +1,149 @@
-// jshint esversion: 6
-// jshint -W033
-/*
- * it uses flumeview-transfrom to transform database rows into a stream of rows to be
- * inserted into level db
- *
- * If it only emits a value once a bucekt is done (i.e. a value comes in that does not fit the current bucket anymore), we will encounter a situation where reading the index stalls. (flumedb waiting for the view to catch up, but it never does)
- *
- * If instead we write incomplete buckets to the db, we have a more complicated scenario when resuming the indexing after a restart. We then need to initialize the accumulator with the old value. 
- * And: in this scenario, downstream needs to be prepared for receiving more than one row per bucket.
- *
- */
-
+//jshint  esversion: 11
+//jshint -W033
+//jshint -W014
 const pull = require('pull-stream')
-const FlumeTransform = require('flumeview-level-transform')
-const ViewDriver = require('flumedb-view-driver')
-const Stream = require('./stream')
-const multicb = require('multicb')
-const debug = require('debug')('flumeview-level-aggerage')
+const Level = require('level')
+const charwise = require('charwise')
+const pl = require('pull-level')
+const Obv = require('obz')
+const path = require('path')
+const ltgt = require('ltgt')
 
-module.exports = function(flume, version, transform) {
-  const views = []
-  const closes = []
+const through = require('./through')
 
-  const createView = FlumeTransform(version, transform)
-  const ret = function(log, name) {
-    const view = createView(log, name)
-    const use = ViewDriver(flume, log, source(view))
-    views.forEach( ({name, create})=>{
-      ret[name] = use(name, create)
-      closes.push(ret[name].close)
+const noop = () => {}
+const META = '\x00'
+
+module.exports = function(version, fits, add, opts) {
+  return function (log, name) {
+    const dir = path.dirname(log.filename)
+    const since = Obv()
+    let closed, outdated
+
+    let db = create()
+
+    db.get(META, { keyEncoding: 'utf8' }, function (err, meta) {
+      if (err) since.set(-1)
+      else if (meta.version === version) since.set(meta.since)
+      else {
+        // version has changed, wipe db and start over.
+        outdated = true
+        destroy()
+      }
     })
-    return Object.assign({}, view, {
-      close: function close(cb) {
-        const done = multicb()
-        for (let close of closes) close(done())
-        done( err => {
-          if (err) console.error(err.message)
-          view.close(cb)
-        })
-      } 
-    })
-  }
-  ret.use = function(name, create) {
-    views.push({name, create})
-    return ret
-  }
-  return ret
 
-  function source(parent) {
-    return function source(sv, opts) {
-      debug(`source opts for ${sv.name}`, opts)
+    return {
+      methods: { get: 'async', read: 'source' },
+      since,
+      createSink,
+      get,
+      read, 
+      close,
+      destroy
+    }
 
+    function createSink(cb) {
       return pull(
-        parent.read(Object.assign({}, opts, {
-          gt: [opts.gt, undefined],
-          live: true,
-          keys: true,
-          values: false,
-          sync: false,
-          upto: true
-        })),
-        pull.map(x=>{
-          if (x.key.length==1 && x.key[0] == undefined) {
-            return {since: x.seq.since}
-          }
-          return x
+        //pull.filter(item => item.sync == undefined),
+        through(fits, add, opts),
+        pull.asyncMap(write),
+        pull.onEnd(err=>{
+          if (err) console.error(err)
+          cb(err)
         })
       )
+
+      function write(item, cb) {
+        const {seq, key, value} = item
+        const batch = [{
+          key: META,
+          value: {version, since: seq},
+          valueEncoding: 'json',
+          keyEncoding: 'utf8',
+          type: 'put'
+        }, { 
+          key, value, type: 'put' 
+        }]
+        db.batch(batch, err=>{
+          if (err) return cb(err)
+          since.set(batch[0].value.since)
+        })
+      }
     }
+    
+    function create() {
+      closed = false
+      if (!log.filename) {
+        throw new Error(
+          'flumeview-level-aggregate can only be used with a log that provides a directory'
+        )
+      }
+      return Level(path.join(dir, name), {
+        keyEncoding: charwise,
+        valueEncoding: 'json'
+      })
+    }
+
+    function close (cb) {
+      if (typeof cb !== 'function') {
+        cb = noop
+      }
+
+      closed = true
+      if (outdated) return db.close(cb)
+      if (!db) return cb()
+      since.once(() => db.close(cb) )
+    }
+
+    function destroy (cb) {
+      // FlumeDB restarts the stream as soon as the stream is cancelled, so the
+      // rebuild happens before `writer.abort()` calls back. This means that we
+      // must run `since.set(-1)` before aborting the stream.
+      since.set(-1)
+
+      // The `clear()` method must run before the stream is closed, otherwise
+      // you can have a situation where you:
+      //
+      // 1. Flumeview-Level closes the stream
+      // 2. FlumeDB restarts the stream
+      // 3. Flumeview-Level processes a message
+      // 4. Flumeview-Level runs `db.clear()` and deletes that message.
+      db.clear(cb)
+    }
+
+    function get(key, cb) {
+      // wait until the log has been processed up to the current point.
+      db.get(key, function (err, value) {
+        if (err && err.name === 'NotFoundError') return cb(err)
+        if (err) {
+          return cb(
+            explain(err, 'flumeview-level-aggregate.get: key not found:' + key)
+          )
+        }
+        cb(err, value)
+      })
+    }
+
+    function read(opts) {
+      // TODO: why this?
+      var lower = ltgt.lowerBound(opts)
+      if (lower == null) opts.gt = null
+
+      function format (key, value) {
+        return opts.keys && opts.values
+          ? { key: key, value: value }
+          : opts.keys
+          ? key
+          : value
+      }
+
+      return pull(
+        pl.read(db, opts),
+        pull.filter(op => op.key !== META),
+        pull.map(data => format(data.key, data.value))
+      )
+    }
+
   }
+
 }

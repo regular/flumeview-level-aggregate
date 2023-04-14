@@ -10,17 +10,17 @@
   "author": "Jan Bölsche <jan@lagomorph.de> (http://regular.codes/)",
   "license": "ISC",
   "dependencies": {
-    "debug": "^4.3.4",
+    "charwise": "^3.0.1",
     "deep-copy": "^1.4.2",
-    "flumedb-view-driver": "github:regular/flumedb-view-driver",
-    "flumeview-level-transform": "github:regular/flumeview-level-transform",
-    "multicb": "^1.2.2",
-    "pull-stream": "^3.7.0"
+    "level": "^6.0.1",
+    "ltgt": "^2.2.1",
+    "pull-level": "^2.0.4",
+    "pull-stream": "^3.7.0",
+    "obz": "^1.1.0"
   },
   "devDependencies": {
     "flumedb": "^2.1.8",
     "flumelog-array": "^1.2.0",
-    "obz": "^1.1.0",
     "tape": "^5.6.3",
     "tmp": "^0.2.1"
   }
