@@ -16,20 +16,27 @@ test('resume', t=>{
   let db = Flume(log)
   db.use('agg', Aggregate(1, fitsBucket, add, {timeout: 100}))
 
+  db.agg.since( s=>{ console.log('since', s)})
+
   db.append([
-    {n:1}
+    {n:1},
+    {n:2},
+    {n:10},
   ], (err, seq) => {
     t.notOk(err, 'write items to db')
+    console.log('db seq:', seq)
+    console.log('reading index')
     pull(
       db.agg.read({
         keys: true,
         values: true
       }),
+      pull.through(console.log),
       pull.collect( (err, items)=>{
         t.notOk(err, 'read view')
         t.deepEqual(items, [
-          { key: 0,  value: {sum: 1, l: [1]} },
-          //{ key: 1,  value: {sum: 10, l: [10]} },
+          { key: 0,  value: {sum: 3, l: [1, 2]} },
+          { key: 1,  value: {sum: 10, l: [10]} },
         ])
         db.close( err=>{
           t.notOk(err, 'db.close() should not error')
@@ -38,8 +45,7 @@ test('resume', t=>{
           db.use('agg', Aggregate(1, fitsBucket, add, {timeout: 100}))
 
           db.append([
-            {n:2},
-            //{n:20}
+            {n: 11}, //This causes 'test exited without ending
           ], (err, seq) => {
             t.notOk(err, 'write items to db, again')
             pull(
@@ -51,8 +57,7 @@ test('resume', t=>{
                 t.notOk(err, 'read view again')
                 t.deepEqual(items, [
                   { key: 0,  value: {sum: 3, l: [1, 2]} },
-                  //{ key: 1,  value: {sum: 21, l: [10, 11]} },
-                  //{ key: 2,  value: {sum: 20, l: [20]} },
+                  { key: 1,  value: {sum: 21, l: [10, 11]} },
                 ])
                 t.end()
               })

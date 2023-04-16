@@ -80,6 +80,7 @@ module.exports = function(version, fits, add, opts) {
         db.batch(batch, err=>{
           if (err) return cb(err)
           since.set(batch[0].value.since)
+          cb(null)
         })
       }
     }
