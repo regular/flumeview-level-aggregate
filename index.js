@@ -11,6 +11,7 @@ const ltgt = require('ltgt')
 const multicb = require('multicb')
 
 const through = require('./through')
+const assertMono = require('./assert-monotonic')
 
 const noop = () => {}
 const META = '\x00'
@@ -56,8 +57,17 @@ module.exports = function(version, fits, add, opts) {
     }
 
     function createSink(cb) {
+      let {assert_monotonic, filter} = opts
+      if (!filter) filter = x=>true
       return pull(
         //pull.filter(item => item.sync == undefined),
+        assert_monotonic ?
+        assertMono( ({seq, value}) => {
+          if (!filter(value)) return
+          return assert_monotonic(value)
+        }, name, msg=>{
+          console.error(msg)
+        }) : pull.through(),
         through(fits, add, Object.assign({}, opts, {initial})),
         pull.asyncMap(write),
         pull.onEnd(err=>{

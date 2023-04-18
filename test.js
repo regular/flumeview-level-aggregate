@@ -10,6 +10,30 @@ const test = require('tape')
 
 const Aggregate = require('.')
 
+test('assert_monotonic', t=>{
+  const log = Log()
+  log.filename = join(tmp.dirSync({unsafeCleanup: true}).name, 'xxx')
+  let db = Flume(log)
+  db.use('agg', Aggregate(1, fitsBucket, add, {
+    timeout: 100,
+    assert_monotonic: x=>{
+      return x.n
+    }
+  }))
+
+  db.append([
+    {n:1},
+    {n:2},
+    {n:0},
+  ], (err, seq) => {
+    t.notOk(err, 'write items to db')
+    db.agg.since(x=>{
+      if (x==2) t.end()
+    })
+  })
+})
+
+
 test('resume', t=>{
   const log = Log()
   log.filename = join(tmp.dirSync({unsafeCleanup: true}).name, 'xxx')
