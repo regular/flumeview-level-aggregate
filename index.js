@@ -36,10 +36,12 @@ module.exports = function(version, fits, add, opts) {
     db.get(META, { keyEncoding: 'utf8' }, done())
 
     done(function (err, init, meta) {
+      if (err) return since.set(-1)
       initial = init && init[0]
-      if (err) since.set(-1)
-      else if (meta.version === version) since.set(meta.since)
-      else {
+      initial.seq = meta.since
+      if (meta.version === version) {
+        since.set(meta.since)
+      } else {
         // version has changed, wipe db and start over.
         outdated = true
         destroy()

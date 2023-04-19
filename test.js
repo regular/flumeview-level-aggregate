@@ -68,6 +68,10 @@ test('resume', t=>{
           db = Flume(log)
           db.use('agg', Aggregate(1, fitsBucket, add, {timeout: 100}))
 
+          db.agg.since(x=>{
+            console.log(x)
+          })
+
           db.append([
             {n: 11}, //This causes 'test exited without ending
           ], (err, seq) => {
