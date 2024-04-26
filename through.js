@@ -69,6 +69,7 @@ module.exports = function(fitsBucket, add, opts) {
 
           if (!filter(data.value)) {
             seq = data.seq
+            setTimer()
             return slurp()
           }
 
