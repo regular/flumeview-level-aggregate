@@ -2,14 +2,14 @@
 //jshint -W033
 const test = require('tape')
 const pull = require('pull-stream')
-const Stream = require('./through')
+const buckets = require('./buckets')
 
 test('aggregates values', t=>{
   let seq = 0
   pull(
     pull.values([1,2,10,11,20,25]),
     pull.map(value=>{return {value, seq: seq++}}),
-    Stream(fitsBucket, add),
+    buckets(fitsBucket, add),
     pull.collect( (err, data)=>{
       t.deepEqual(data, [
         {seq: 1, key: 0, value: { sum: 3, l: [ 1, 2 ] }},
@@ -26,7 +26,7 @@ test('filter', t=>{
   pull(
     pull.values([1,2,4, 10,11,12, 20,22,25]),
     pull.map(value=>{return {value, seq: seq++}}),
-    Stream(fitsBucket, add, {filter: n=>n%2==0}),
+    buckets(fitsBucket, add, {filter: n=>n%2==0}),
     pull.collect( (err, data)=>{
       t.deepEqual(data, [
         {key: 0, seq: 2, value: { sum: 6, l: [ 2, 4 ] }},
@@ -41,7 +41,7 @@ test('filter', t=>{
 test('initial', t=>{
   pull(
     pull.values([{seq: 1, value: 10}]),
-    Stream(fitsBucket, add, {
+    buckets(fitsBucket, add, {
       initial: {
         key: 1, seq: 0, value: { l:[], sum: 100}
       }
@@ -58,7 +58,7 @@ test('initial', t=>{
 test('initial, then end', t=>{
   pull(
     pull.values([]),
-    Stream(fitsBucket, add, {
+    buckets(fitsBucket, add, {
       initial: {
         key: 1, seq: 100, value: { l:[], sum: 100}
       }
@@ -85,7 +85,7 @@ test('dont stall', t=>{
       [200, 25],
     ]),
     pull.map(value=>{return {value, seq: seq++}}),
-    Stream(fitsBucket, add, {timeout: 100}),
+    buckets(fitsBucket, add, {timeout: 100}),
     pull.collect( (err, data)=>{
       t.deepEqual(data, [
         {key: 0, seq: 1, value: { sum: 3, l: [ 1, 2 ] }},
@@ -109,7 +109,7 @@ test('dont stall if last item is filtered', t=>{
       [1000, 3]
     ]),
     pull.map(value=>{return {value, seq: seq++}}),
-    Stream(fitsBucket, add, {timeout: 100, filter: n=>n != 3}),
+    buckets(fitsBucket, add, {timeout: 100, filter: n=>n != 3}),
     pull.through(console.log),
     pull.collect( (err, data)=>{
       t.deepEqual(data, [
@@ -122,12 +122,12 @@ test('dont stall if last item is filtered', t=>{
   )
 })
 
-test('max_age', t=>{
+test('max_size', t=>{
   let seq = 0
   pull(
     pull.values([1,2,4, 10,11,12]),
     pull.map(value=>{return {value, seq: seq++}}),
-    Stream(fitsBucket, add, {max_age: 2}),
+    buckets(fitsBucket, add, {max_size: 2}),
     pull.collect( (err, data)=>{
       t.deepEqual(data, [
         {key: 0, seq: 1, value: { sum: 3, l: [ 1, 2 ] }},

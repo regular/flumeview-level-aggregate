@@ -10,7 +10,7 @@ const path = require('path')
 const ltgt = require('ltgt')
 const multicb = require('multicb')
 
-const through = require('./through')
+const buckets = require('./buckets')
 const assertMono = require('./assert-monotonic')
 
 const noop = () => {}
@@ -62,15 +62,15 @@ module.exports = function(version, fits, add, opts) {
       let {assert_monotonic, filter} = opts
       if (!filter) filter = x=>true
       return pull(
-        //pull.filter(item => item.sync == undefined),
         assert_monotonic ?
         assertMono( ({seq, value}) => {
           if (!filter(value)) return
           return assert_monotonic(value)
         }, name, msg=>{
           console.error(msg)
+          //process.exit(1)
         }) : pull.through(),
-        through(fits, add, Object.assign({}, opts, {initial})),
+        buckets(fits, add, Object.assign({}, opts, {initial})),
         pull.asyncMap(write),
         pull.onEnd(err=>{
           if (err) console.error(err)
