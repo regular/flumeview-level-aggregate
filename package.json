@@ -11,6 +11,7 @@
   "license": "MIT",
   "dependencies": {
     "charwise": "^3.0.1",
+    "deep-copy": "^1.4.2",
     "level": "^6.0.1",
     "ltgt": "^2.2.1",
     "multicb": "^1.2.2",
