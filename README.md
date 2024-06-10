@@ -3,6 +3,7 @@ flumeview-level-aggregate
   
 *Example*
 
+``` js
   const pull = require('pull-stream')
   const Log = require('flumelog-offset')
   const Flume = require('flumedb')
@@ -49,5 +50,5 @@ flumeview-level-aggregate
       })
     )
   })
-
+```
 
