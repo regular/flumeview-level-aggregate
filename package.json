@@ -1,5 +1,8 @@
 {
-  "name": "regular@flumeview-level-aggregate",
+  "name": "@regular/flumeview-level-aggregate",
+  "publishConfig": {
+    "access": "public"
+  },
   "version": "1.2.0",
   "description": "",
   "main": "index.js",
