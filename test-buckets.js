@@ -99,23 +99,24 @@ test('dont stall', t=>{
   )
 })
 
-test('dont stall if last item is filtered', t=>{
+test('a filtered value that does not fit increases seq', t=>{
   let seq = 0
   pull(
     timedSource([
       [0, 1],
       [0, 2],
-      [1000, 3],
-      [1000, 3]
+      [0, 10],
+      [200, 10],
+      [200, 10]
     ]),
     pull.map(value=>{return {value, seq: seq++}}),
-    buckets(fitsBucket, add, {timeout: 100, filter: n=>n != 3}),
+    buckets(fitsBucket, add, {timeout: 100, filter: n=>n != 10}),
     pull.through(console.log),
     pull.collect( (err, data)=>{
       t.deepEqual(data, [
-        {key: 0, seq: 1, value: { sum: 3, l: [ 1, 2 ] }},
         {key: 0, seq: 2, value: { sum: 3, l: [ 1, 2 ] }},
         {key: 0, seq: 3, value: { sum: 3, l: [ 1, 2 ] }},
+        {key: 0, seq: 4, value: { sum: 3, l: [ 1, 2 ] }}
       ])
       t.end()
     })
