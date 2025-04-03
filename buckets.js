@@ -12,18 +12,19 @@ module.exports = function(fitsBucket, add, opts) {
     pull.through(kvs=>{
       if (!filter(kvs.value)) kvs.__ignore = true
     }),
-    buckets( (bucket, kvs)=>fitsBucket(bucket, kvs.value),
-      (bucket, kvs) => {
-        if (!kvs.__ignore) {
-          bucket = add(bucket, kvs.value)
-        } else delete kvs.__ignore
-        if (bucket) {
-          bucket.seq = kvs.seq
-        }
-        return bucket
-      },
-      opts
-    )
+    buckets( (bucket, kvs)=>{
+      if (kvs.__ignore) return true
+      return fitsBucket(bucket, kvs.value)
+    }, (bucket, kvs) => {
+      if (!kvs.__ignore) {
+        bucket = add(bucket, kvs.value)
+      } else delete kvs.__ignore
+      if (bucket) {
+        bucket.seq = kvs.seq
+      }
+      return bucket
+    },
+    opts)
   )
 }
 
